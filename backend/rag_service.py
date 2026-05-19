@@ -12,7 +12,8 @@ from backend.database import (
     get_parent_chunks_by_ids,
     save_chat_history,
     save_semantic_cache,
-    query_semantic_cache
+    query_semantic_cache,
+    get_chat_history
 )
 from backend.embeddings import embed_query
 from backend.reranker import rerank_child_chunks
@@ -41,15 +42,48 @@ def _unique_parent_ids(search_results: List[Dict[str, Any]]) -> List[str]:
     return parent_ids
 
 
+def _rewrite_query(question: str, history: List[Dict[str, Any]]) -> str:
+    if not history:
+        return question
+
+    history_text = "\n".join([f"User: {h['question']}\nAssistant: {h['answer']}" for h in history[-2:]])
+    prompt = f"""Given the following conversation history and the user's current question, rewrite the current question to be a standalone, fully contextualized query that can be used for searching a document. Do not answer the question, only rewrite it. If it doesn't need rewriting, output it as is.
+
+History:
+{history_text}
+
+Current Question: {question}
+Standalone Question:"""
+
+    try:
+        response = client.chat.completions.create(
+            model="z-ai/glm-5.1",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0,
+            max_tokens=60
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return question
+
+
+
 def _build_rag_context(document_id: str, question: str):
     """
     Shared retrieval logic used by both streaming and non-streaming paths.
     Returns (prompt, sources, parent_chunks) or a dict error response.
     """
-    # 1. Retrieve candidate child chunks
+    # 0. Fetch recent chat history
+    history = get_chat_history(document_id)
+    recent_history = history[-3:] # get last 3 turns
+
+    # 1. Rewrite query for follow-ups
+    search_query = _rewrite_query(question, recent_history)
+
+    # 2. Retrieve candidate child chunks
     candidate_child_results = search_child_chunks(
         document_id=document_id,
-        question=question,
+        question=search_query,
         top_k=10
     )
 
@@ -88,6 +122,12 @@ def _build_rag_context(document_id: str, question: str):
     for parent in truncated_parents:
         context += f"\n[Page {parent['page']}]\n{parent['text']}\n"
 
+    history_context = ""
+    if recent_history:
+        history_context = "\nRecent Conversation History:\n"
+        for item in recent_history:
+            history_context += f"User: {item['question']}\nAssistant: {item['answer']}\n\n"
+
     prompt = f"""
 You are a PDF question-answering assistant.
 
@@ -100,7 +140,8 @@ Rules:
 - Do not guess.
 - Mention page numbers when possible.
 - Keep the answer clear and direct.
-
+- Use the recent conversation history to understand context if the user asks follow-up questions.
+{history_context}
 PDF Context:
 {context}
 

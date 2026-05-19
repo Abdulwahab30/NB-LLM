@@ -19,7 +19,9 @@ flowchart TD
 
     H["❓ User Question"] --> I{"Semantic Cache<br/>Check"}
     I -- "Cache Hit<br/>(similarity ≥ 0.85)" --> J["Stream Cached Answer"]
-    I -- "Cache Miss" --> K["Embed Query"]
+    I -- "Cache Miss" --> K1["Fetch Chat History"]
+    K1 --> K2["LLM Query Rewrite<br/>(Resolve Pronouns)"]
+    K2 --> K["Embed Rewritten Query"]
     K --> L["Vector Search<br/>(Top-10 Children)"]
     L --> M["Cross-Encoder Reranking<br/>(Top-3 Children)"]
     M --> N["Retrieve Parent Chunks<br/>via Child→Parent Mapping"]
@@ -202,14 +204,20 @@ When a user asks a question, the following pipeline executes:
 - The question is embedded and compared (cosine similarity) against all cached question embeddings for that document
 - If similarity ≥ **0.85**, the cached answer is returned immediately (streamed word-by-word)
 - **Storage:** SQLite table `semantic_cache` with columns: `document_id`, `question`, `embedding` (JSON), `answer`, `sources`
-- This avoids redundant LLM API calls for semantically identical questions
+- This avoids redundant LLM API calls for semantically identical questions, greatly reducing latency and API costs.
 
-#### Step 2: Vector Search (Top-10 Candidates)
-- The question is embedded using `BAAI/bge-small-en-v1.5`
+#### Step 2: Conversational Query Rewriting (Memory)
+- The system fetches the last 3 turns of chat history from SQLite.
+- If history exists, an LLM call rewrites the user's question into a standalone query (resolving pronouns like "he", "it", "there").
+- Example: *"What role did he have there?"* → *"What role did John Doe have in the GIS Visualization project?"*
+- This enables robust multi-turn conversations where vector search continues to perform well on follow-up questions.
+
+#### Step 3: Vector Search (Top-10 Candidates)
+- The rewritten query is embedded using `BAAI/bge-small-en-v1.5`
 - ChromaDB returns the **top-10** most similar child chunks (filtered by `document_id`)
 - Results include text, metadata (parent_id, page), and distance score
 
-#### Step 3: Cross-Encoder Reranking (Top-3)
+#### Step 4: Cross-Encoder Reranking (Top-3)
 
 **Module:** `backend/reranker.py`  
 **Model:** [`cross-encoder/ms-marco-MiniLM-L-6-v2`](https://huggingface.co/cross-encoder/ms-marco-MiniLM-L-6-v2)
@@ -232,7 +240,7 @@ When a user asks a question, the following pipeline executes:
 | Property | Value |
 |---|---|
 | Provider | [OpenRouter](https://openrouter.ai/) |
-| Model | `qwen/qwen-2.5-7b-instruct` |
+| Model | `z-ai/glm-5.1` |
 | Temperature | 0 (deterministic) |
 | Max tokens | 800 |
 | Streaming | SSE (Server-Sent Events), token-by-token |
@@ -245,8 +253,9 @@ The prompt instructs the LLM to:
 - Not use outside knowledge or guess
 - Mention page numbers when possible
 - Return `"I could not find this information in the PDF."` if the answer isn't available
+- Consider the provided recent conversation history to answer follow-up questions cohesively.
 
-#### Step 6: Post-Response Storage
+#### Step 7: Post-Response Storage
 After the stream completes, the answer is saved to:
 - **Chat History** (SQLite `chat_history` table) — for display in the history panel
 - **Semantic Cache** (SQLite `semantic_cache` table) — for future cache hits
@@ -488,15 +497,16 @@ Response: {"document_id": "...", "history": [...]}
 
 ---
 
-## 🎨 Frontend Features
+## 🎨 Frontend & System Features
 
-- **Drag-and-drop** PDF upload with visual feedback
-- **Real-time streaming** answers with blinking cursor animation
-- **Source badges** showing which PDF pages were used
-- **Chat history** panel to review past conversations
-- **Glassmorphism dark theme** with animated background blobs
-- **Responsive** design for all screen sizes
-- **Toast notifications** for success/error feedback
+- **Multi-turn Conversation Memory**: Automatically rewrites follow-up questions using chat history so pronouns and context carry over perfectly into vector search.
+- **Semantic Caching**: Identical or highly similar questions (cosine similarity ≥ 0.85) instantly return cached answers, reducing LLM costs and latency.
+- **Scanned PDF Support**: PyMuPDF detects scanned pages (pages with minimal text characters) to flag them for future OCR or alternative processing.
+- **Drag-and-drop** PDF upload with visual feedback.
+- **Real-time streaming** answers with blinking cursor animation.
+- **Source badges** showing which PDF pages were used.
+- **Chat history** panel to review past conversations.
+- **Glassmorphism dark theme** with animated background blobs.
 
 ---
 
