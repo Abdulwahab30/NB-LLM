@@ -302,6 +302,19 @@ h1 {
     }
 }
 
+/* Streaming cursor */
+.streaming-cursor {
+    display: inline;
+    color: var(--primary);
+    animation: blink 0.7s step-end infinite;
+    font-weight: 400;
+}
+
+@keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
 /* Chat Section */
 .chat-header {
     display: flex;

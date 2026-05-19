@@ -2,7 +2,7 @@ import os
 import shutil
 from fastapi import FastAPI, UploadFile, File
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 
 from backend.pdf_reader import extract_pdf_text
@@ -10,7 +10,7 @@ from backend.preprocessing import preprocess_pages
 from backend.chunker import build_parent_child_chunks
 from backend.vector_store import add_child_chunks, search_child_chunks, delete_document_vectors
 from backend.reranker import rerank_child_chunks
-from backend.rag_service import answer_question
+from backend.rag_service import answer_question, answer_question_stream
 from backend.database import (
     init_db,
     create_or_update_document,
@@ -116,6 +116,22 @@ def ask(request: AskRequest):
     return answer_question(
         document_id=request.document_id,
         question=request.question
+    )
+
+
+@app.post("/ask-stream")
+def ask_stream(request: AskRequest):
+    return StreamingResponse(
+        answer_question_stream(
+            document_id=request.document_id,
+            question=request.question
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
     )
 
 

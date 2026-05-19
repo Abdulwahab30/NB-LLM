@@ -1,0 +1,24 @@
+# Virtual environment
+venv/
+.venv/
+Env/
+ENV/
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local configuration
+.env
+
+# Application databases & local data storage
+data/
+backend/storage/pdfs/
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

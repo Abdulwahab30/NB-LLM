@@ -299,11 +299,23 @@ async function sendQuestion() {
     sendBtn.disabled = true;
     questionInput.disabled = true;
 
-    // Add loading indicator
-    const loadingId = addLoader();
+    // Create the AI message bubble for streaming
+    const msgDiv = document.createElement('div');
+    msgDiv.className = 'message system-msg';
+    const contentP = document.createElement('p');
+    const contentDiv = document.createElement('div');
+    contentDiv.className = 'content';
+    contentDiv.appendChild(contentP);
+    msgDiv.innerHTML = `<div class="avatar">AI</div>`;
+    msgDiv.appendChild(contentDiv);
+    chatHistory.appendChild(msgDiv);
+    chatHistory.scrollTop = chatHistory.scrollHeight;
+
+    // Add a blinking cursor effect
+    contentP.innerHTML = '<span class="streaming-cursor">▊</span>';
 
     try {
-        const response = await fetch('/ask', {
+        const response = await fetch('/ask-stream', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -314,17 +326,71 @@ async function sendQuestion() {
             })
         });
 
-        const data = await response.json();
-        removeLoader(loadingId);
-
-        if (response.ok) {
-            addMessage(data.answer, 'system', data.sources);
-        } else {
-            addMessage('Sorry, an error occurred while processing your question.', 'system');
+        if (!response.ok) {
+            contentP.textContent = 'Sorry, an error occurred while processing your question.';
+            return;
         }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+        let fullText = '';
+        let sources = null;
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            buffer += decoder.decode(value, { stream: true });
+
+            // Process complete SSE lines
+            const lines = buffer.split('\n');
+            buffer = lines.pop(); // Keep incomplete line in buffer
+
+            for (const line of lines) {
+                if (!line.startsWith('data: ')) continue;
+
+                const jsonStr = line.slice(6).trim();
+                if (!jsonStr) continue;
+
+                try {
+                    const event = JSON.parse(jsonStr);
+
+                    if (event.type === 'token') {
+                        fullText += event.content;
+                        contentP.innerHTML = fullText.replace(/\n/g, '<br>') + '<span class="streaming-cursor">▊</span>';
+                        chatHistory.scrollTop = chatHistory.scrollHeight;
+                    } else if (event.type === 'sources') {
+                        sources = event.sources;
+                    } else if (event.type === 'done') {
+                        // Remove cursor and finalize
+                        contentP.innerHTML = fullText.replace(/\n/g, '<br>');
+
+                        // Add sources if available
+                        if (sources && sources.length > 0) {
+                            const uniquePages = [...new Set(sources.map(s => s.page))].sort((a, b) => a - b);
+                            let sourcesHtml = '<div class="sources">Sources: ';
+                            uniquePages.forEach(p => {
+                                sourcesHtml += `<span class="source-badge">Page ${p}</span>`;
+                            });
+                            sourcesHtml += '</div>';
+                            contentDiv.innerHTML += sourcesHtml;
+                        }
+                    } else if (event.type === 'error') {
+                        contentP.innerHTML = event.content;
+                    }
+                } catch (parseErr) {
+                    // Skip malformed JSON lines
+                }
+            }
+        }
+
+        // Final cleanup: if stream ended without a done event
+        const cursor = contentP.querySelector('.streaming-cursor');
+        if (cursor) cursor.remove();
+
     } catch (error) {
-        removeLoader(loadingId);
-        addMessage('Error connecting to the server.', 'system');
+        contentP.textContent = 'Error connecting to the server.';
     } finally {
         sendBtn.disabled = false;
         questionInput.disabled = false;

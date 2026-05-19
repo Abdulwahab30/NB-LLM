@@ -2,6 +2,9 @@ import json
 import sqlite3
 from datetime import datetime
 from typing import List, Dict, Any, Optional
+import numpy as np
+from sentence_transformers import util
+from backend.embeddings import embed_query  # your existing embedding functions
 
 DB_PATH = "data/app.db"
 
@@ -46,6 +49,18 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         document_id TEXT NOT NULL,
         question TEXT NOT NULL,
+        answer TEXT NOT NULL,
+        sources TEXT NOT NULL,
+        created_at TEXT NOT NULL
+    )
+    """)
+
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS semantic_cache (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        document_id TEXT NOT NULL,
+        question TEXT NOT NULL,
+        embedding TEXT NOT NULL,
         answer TEXT NOT NULL,
         sources TEXT NOT NULL,
         created_at TEXT NOT NULL
@@ -239,3 +254,57 @@ def get_chat_history(document_id: str) -> List[Dict[str, Any]]:
 
     conn.close()
     return rows
+
+
+def save_semantic_cache(document_id: str, question: str, answer: str, sources: list, embedding: list):
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+    INSERT INTO semantic_cache (document_id, question, embedding, answer, sources, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        document_id,
+        question,
+        json.dumps(embedding),
+        answer,
+        json.dumps(sources),
+        now_iso()
+    ))
+    conn.commit()
+    conn.close()
+
+
+def query_semantic_cache(document_id: str, question: str, threshold: float = 0.85):
+    """
+    Returns cached answer if cosine similarity > threshold.
+    """
+    query_embedding = np.array(embed_query(question), dtype=np.float32)
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("""
+    SELECT * FROM semantic_cache WHERE document_id = ?
+    """, (document_id,))
+    rows = cur.fetchall()
+    conn.close()
+
+    best_score = 0
+    best_answer = None
+    best_sources = None
+
+    for row in rows:
+        cached_embedding = np.array(json.loads(row["embedding"]), dtype=np.float32)
+        score = util.cos_sim(query_embedding, cached_embedding).item()
+
+        if score > threshold and score > best_score:
+            best_score = score
+            best_answer = row["answer"]
+            best_sources = json.loads(row["sources"])
+
+    if best_answer:
+        return {
+            "answer": best_answer,
+            "confidence": f"cached ({best_score:.2f})",
+            "sources": best_sources
+        }
+
+    return None
