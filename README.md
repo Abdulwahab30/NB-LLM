@@ -341,20 +341,46 @@ NB-LLM/
 
 ## 🚀 Setup & Installation
 
-### Prerequisites
+You can run NB-LLM either using **Docker** (recommended) or via a **Local Installation**.
+
+### Option A: Run with Docker (Recommended)
+
+NB-LLM features a multi-container architecture (Nginx frontend + FastAPI backend via Conda).
+
+1. Ensure **Docker** and **Docker Compose** are installed on your machine.
+2. Clone the repository and navigate to the directory:
+   ```bash
+   git clone https://github.com/your-username/NB-LLM.git
+   cd NB-LLM
+   ```
+3. Create a `.env` file in the project root and add your OpenRouter API key:
+   ```env
+   OPENROUTER_API_KEY="sk-or-v1-your-api-key-here"
+   ```
+4. Build and start the containers:
+   ```bash
+   docker-compose up --build
+   ```
+5. Open **http://localhost** in your browser.
+
+---
+
+### Option B: Local Installation
+
+#### Prerequisites
 
 - **Python 3.10+**
 - **pip** (Python package manager)
 - An **OpenRouter API key** ([get one here](https://openrouter.ai/))
 
-### Step 1: Clone the Repository
+#### Step 1: Clone the Repository
 
 ```bash
 git clone https://github.com/your-username/NB-LLM.git
 cd NB-LLM
 ```
 
-### Step 2: Create a Virtual Environment
+#### Step 2: Create a Virtual Environment
 
 ```bash
 python -m venv venv
@@ -366,13 +392,13 @@ python -m venv venv
 source venv/bin/activate
 ```
 
-### Step 3: Install Dependencies
+#### Step 3: Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### Step 4: Configure Environment Variables
+#### Step 4: Configure Environment Variables
 
 Create a `.env` file in the project root:
 
@@ -380,7 +406,7 @@ Create a `.env` file in the project root:
 OPENROUTER_API_KEY="sk-or-v1-your-api-key-here"
 ```
 
-### Step 5: Run the Application
+#### Step 5: Run the Application
 
 ```bash
 uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
