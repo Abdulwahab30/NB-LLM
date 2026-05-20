@@ -26,7 +26,7 @@ flowchart TD
     L --> M["Cross-Encoder Reranking<br/>(Top-3 Children)"]
     M --> N["Retrieve Parent Chunks<br/>via Child→Parent Mapping"]
     N --> O["Build LLM Prompt<br/>with PDF Context"]
-    O --> P["LLM Call<br/>(Qwen 2.5 7B via OpenRouter)"]
+    O --> P["LLM Call<br/>(GLM-5.1 via OpenRouter)"]
     P --> Q["🔄 Stream Response<br/>(SSE Token-by-Token)"]
     Q --> R["Save to Chat History<br/>& Semantic Cache"]
 
@@ -301,7 +301,7 @@ The frontend reads the stream with a `ReadableStream` reader, parsing each SSE l
 | **Vector Database** | ChromaDB (persistent) |
 | **Reranker** | sentence-transformers CrossEncoder (ms-marco-MiniLM-L-6-v2) |
 | **Database** | SQLite (documents, parent chunks, chat history, semantic cache) |
-| **LLM Provider** | OpenRouter API (Qwen 2.5 7B Instruct) |
+| **LLM Provider** | OpenRouter API (GLM-5.1) |
 | **Frontend** | Vanilla HTML, CSS, JavaScript |
 | **Font** | Google Fonts — Outfit |
 

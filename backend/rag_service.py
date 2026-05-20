@@ -203,7 +203,7 @@ def answer_question(document_id: str, question: str) -> Dict[str, Any]:
     for attempt in range(MAX_RETRIES):
         try:
             response = client.chat.completions.create(
-                model="qwen/qwen-2.5-7b-instruct",
+                model="z-ai/glm-5.1",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0,
                 max_tokens=800
@@ -319,7 +319,7 @@ def answer_question_stream(document_id: str, question: str) -> Generator[str, No
     for attempt in range(MAX_RETRIES):
         try:
             stream = client.chat.completions.create(
-                model="qwen/qwen-2.5-7b-instruct",
+                model="z-ai/glm-5.1",
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0,
                 max_tokens=800,
