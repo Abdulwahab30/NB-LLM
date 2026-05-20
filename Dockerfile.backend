@@ -1,0 +1,21 @@
+FROM continuumio/miniconda3
+
+WORKDIR /app
+
+# Copy requirement file
+COPY requirements.txt .
+
+# Create Conda environment and install dependencies
+RUN conda create -n nb_llm python=3.11 -y && \
+    conda run -n nb_llm pip install --no-cache-dir -r requirements.txt
+
+# Copy source code
+COPY backend/ ./backend/
+# We also copy frontend in case FastAPI is accessed directly
+COPY frontend/ ./frontend/
+
+# Expose port
+EXPOSE 8000
+
+# Run the application
+CMD ["conda", "run", "--no-capture-output", "-n", "nb_llm", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
