@@ -9,6 +9,8 @@ pinned: false
 
 # 📄 NB-LLM — PDF Knowledge Base with RAG
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-Hugging%20Face%20Spaces-yellow?logo=huggingface)](https://huggingface.co/spaces/Arkraptor/docLens_v1)
+
 > **This is Version 1 of the [DocLens](https://github.com/Abdulwahab30/DocLens) project.**
 >
 > DocLens v1 (this repo) handles text-based PDFs only. The full DocLens platform adds **OCR for scanned documents**, **multimodal understanding** (images, charts, diagrams), **multi-document querying**, and more. This version is a functional foundation that demonstrates the core RAG pipeline — use it to get started, then upgrade to DocLens for production workloads.
