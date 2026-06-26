@@ -1,3 +1,12 @@
+---
+title: DocLens v1
+emoji: 📄
+colorFrom: purple
+colorTo: cyan
+sdk: docker
+pinned: false
+---
+
 # 📄 NB-LLM — PDF Knowledge Base with RAG
 
 > **This is Version 1 of the [DocLens](https://github.com/Abdulwahab30/DocLens) project.**
