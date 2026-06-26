@@ -389,7 +389,7 @@ NB-LLM features a multi-container architecture (Nginx frontend + FastAPI backend
 1. Ensure **Docker** and **Docker Compose** are installed on your machine.
 2. Clone the repository and navigate to the directory:
    ```bash
-   git clone https://github.com/your-username/NB-LLM.git
+   git clone https://github.com/Abdulwahab30/NB-LLM.git
    cd NB-LLM
    ```
 3. Create a `.env` file in the project root and add your OpenRouter API key:
@@ -415,7 +415,7 @@ NB-LLM features a multi-container architecture (Nginx frontend + FastAPI backend
 #### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/NB-LLM.git
+git clone https://github.com/Abdulwahab30/NB-LLM.git
 cd NB-LLM
 ```
 
