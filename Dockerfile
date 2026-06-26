@@ -14,10 +14,13 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-RUN mkdir -p data/chroma_db backend/storage/pdfs && \
+RUN mkdir -p data/chroma_db backend/storage/pdfs .cache && \
     chown -R nbllm:nbllm /app
 
 USER nbllm
+
+ENV HF_HOME=/app/.cache
+ENV TRANSFORMERS_CACHE=/app/.cache
 
 EXPOSE 7860
 
