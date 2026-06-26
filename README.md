@@ -1,5 +1,11 @@
 # 📄 NB-LLM — PDF Knowledge Base with RAG
 
+> **This is Version 1 of the [DocLens](https://github.com/Abdulwahab30/DocLens) project.**
+>
+> DocLens v1 (this repo) handles text-based PDFs only. The full DocLens platform adds **OCR for scanned documents**, **multimodal understanding** (images, charts, diagrams), **multi-document querying**, and more. This version is a functional foundation that demonstrates the core RAG pipeline — use it to get started, then upgrade to DocLens for production workloads.
+
+---
+
 > **Ask questions about your PDF documents using a production-grade Retrieval-Augmented Generation (RAG) pipeline with real-time streaming responses.**
 
 NB-LLM is a full-stack application that lets you upload PDF documents and have intelligent, context-aware conversations about their content. It uses a sophisticated multi-stage retrieval pipeline with parent-child chunking, semantic search, cross-encoder reranking, semantic caching, and LLM-powered answers streamed in real-time.
@@ -332,6 +338,8 @@ NB-LLM/
 ├── data/
 │   ├── app.db                # SQLite database
 │   └── chroma_db/            # ChromaDB persistent storage
+├── Dockerfile                # Single-container build for Hugging Face Spaces (port 7860)
+├── Dockerfile.backend        # Multi-container backend (port 8000, used with docker-compose)
 ├── .env                      # API keys
 ├── requirements.txt          # Python dependencies
 └── README.md                 # This file
@@ -341,9 +349,29 @@ NB-LLM/
 
 ## 🚀 Setup & Installation
 
-You can run NB-LLM either using **Docker** (recommended) or via a **Local Installation**.
+You can run NB-LLM on **Hugging Face Spaces**, via **Docker**, or via a **Local Installation**.
 
-### Option A: Run with Docker (Recommended)
+### Option A: Deploy on Hugging Face Spaces (Easiest)
+
+1. Go to [huggingface.co/new-space](https://huggingface.co/new-space), pick **Docker** as the SDK, and create the Space.
+2. In your Space → **Settings → Repository secrets**, add:
+   ```
+   OPENROUTER_API_KEY = sk-or-v1-your-key-here
+   ```
+3. Clone the Space repo and push this project into it:
+   ```bash
+   git clone https://huggingface.co/spaces/YOUR_USERNAME/YOUR_SPACE_NAME
+   # copy project files in, then:
+   git add . && git commit -m "initial deploy" && git push
+   ```
+4. The Space builds automatically. Watch progress in the **Logs** tab.
+5. Open the Space URL — the app is live.
+
+> **Note on storage:** Hugging Face Spaces has ephemeral storage — uploaded PDFs and the database reset on each restart. For persistence, enable the [Spaces persistent storage addon](https://huggingface.co/docs/hub/spaces-storage) (~$5/month) or use an external DB.
+
+---
+
+### Option B: Run with Docker (Local)
 
 NB-LLM features a multi-container architecture (Nginx frontend + FastAPI backend via Conda).
 
@@ -365,7 +393,7 @@ NB-LLM features a multi-container architecture (Nginx frontend + FastAPI backend
 
 ---
 
-### Option B: Local Installation
+### Option C: Local Installation
 
 #### Prerequisites
 

@@ -1,21 +1,33 @@
-FROM continuumio/miniconda3
+# -------------------------------------------------
+# Backend – FastAPI + Uvicorn
+# -------------------------------------------------
+FROM python:3.11-slim
 
+# Create a non‑root user (optional, but good practice)
+RUN groupadd -r nbllm && useradd -r -g nbllm nbllm
 WORKDIR /app
 
-# Copy requirement file
+# Install system deps needed by the Python packages (git, gcc, etc.)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy only the requirements file first (caches layer)
 COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# Create Conda environment and install dependencies
-RUN conda create -n nb_llm python=3.11 -y && \
-    conda run -n nb_llm pip install --no-cache-dir -r requirements.txt
-
-# Copy source code
+# Copy the entire source tree
 COPY backend/ ./backend/
-# We also copy frontend in case FastAPI is accessed directly
 COPY frontend/ ./frontend/
+COPY data/ ./data/
 
-# Expose port
+# optional – you may keep it out of the image for security
+
+# Expose the FastAPI port
 EXPOSE 8000
 
-# Run the application
-CMD ["conda", "run", "--no-capture-output", "-n", "nb_llm", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Run as the non‑root user
+USER nbllm
+
+# Start the app
+CMD ["uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
